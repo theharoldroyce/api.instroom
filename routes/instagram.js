@@ -7,4 +7,12 @@ const instagramController = require('../controllers/instagramController');
 // GET /api/instagram/user/:username
 router.get('/user/:username', instagramController.fetchUserProfile);
 
+// Define the route for getting user media
+// GET /api/instagram/user/:username/media
+router.get('/user/:username/media', instagramController.fetchUserMedia);
+
+// Define the route for getting user stats
+// GET /api/instagram/user/:username/userstat
+router.get('/user/:username/userstat', instagramController.fetchUserStats);
+
 module.exports = router;

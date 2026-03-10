@@ -12,7 +12,17 @@ const port = process.env.PORT || 3000;
 
 // --- Middleware ---
 // Use Helmet to set security-related HTTP headers
-app.use(helmet());
+// We are configuring CSP to explicitly allow connections to self,
+// which can help with some browser-internal requests like the one from Chrome DevTools.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        "connect-src": ["'self'"],
+      },
+    },
+  })
+);
 // Middleware to parse JSON bodies
 app.use(express.json());
 
