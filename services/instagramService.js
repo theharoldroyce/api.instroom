@@ -185,7 +185,7 @@ async function getUserInfoFromRapidAPI(username) {
     let country = null;
 
     if (infoData && infoData.data) {
-      email = infoData.data.public_email || null;
+      email = infoData.data.public_email || 'Email not available';
 
       // Prioritize location from 'info_about' endpoint, fallback to 'info' endpoint
       if (aboutData && aboutData.data && aboutData.data.country) {
