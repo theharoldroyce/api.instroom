@@ -172,26 +172,27 @@ async function getUserInfoFromRapidAPI(username) {
   const baseURL = `https://${rapidApiHost}`;
 
   try {
-    // Fetch info and about data concurrently
-    const [infoResponse, aboutResponse] = await Promise.all([
-      axios.get(`${baseURL}/v1/info`, { headers, params }),
-      axios.get(`${baseURL}/v1/info_about`, { headers, params })
-    ]);
-
+    // First call - /v1/info returns both email and country
+    const infoResponse = await axios.get(`${baseURL}/v1/info`, { headers, params });
     const infoData = infoResponse.data;
-    const aboutData = aboutResponse.data;
 
     let email = null;
     let country = null;
 
     if (infoData && infoData.data) {
       email = infoData.data.public_email || 'Email not available';
+      country = (infoData.data.about && infoData.data.about.country) || null;
+    }
 
-      // Prioritize location from 'info_about' endpoint, fallback to 'info' endpoint
-      if (aboutData && aboutData.data && aboutData.data.country) {
-        country = aboutData.data.country;
-      } else if (infoData.data.about && infoData.data.about.country) {
-        country = infoData.data.about.country;
+    // If country is still null, try /v1/info_about as fallback (2nd API call only when needed)
+    if (!country) {
+      try {
+        const aboutResponse = await axios.get(`${baseURL}/v1/info_about`, { headers, params });
+        if (aboutResponse.data && aboutResponse.data.data && aboutResponse.data.data.country) {
+          country = aboutResponse.data.data.country;
+        }
+      } catch (aboutError) {
+        console.error('Fallback info_about call failed:', aboutError.message);
       }
     }
 
