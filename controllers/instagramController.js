@@ -110,9 +110,30 @@ async function fetchUserInfo(req, res) {
   }
 }
 
+/**
+ * Controller to handle the request for fetching a full user overview.
+ */
+async function fetchUserOverview(req, res) {
+  const { username } = req.params;
+
+  const { error } = usernameSchema.validate({ username });
+  if (error) {
+    return res.status(400).json({ message: 'Invalid username format.', details: error.details });
+  }
+
+  try {
+    const overviewData = await instagramService.getFullOverview(username);
+    res.status(200).json(overviewData);
+  } catch (serviceError) {
+    const statusCode = serviceError.message.includes('configuration') ? 500 : 502;
+    res.status(statusCode).json({ message: serviceError.message });
+  }
+}
+
 module.exports = {
   fetchUserProfile,
   fetchUserMedia,
   fetchUserStats,
-  fetchUserInfo
+  fetchUserInfo,
+  fetchUserOverview
 };

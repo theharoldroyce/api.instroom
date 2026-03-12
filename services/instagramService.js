@@ -203,9 +203,37 @@ async function getUserInfoFromRapidAPI(username) {
   }
 }
 
+/**
+ * Fetches a full overview combining profile, stats, and contact/location info.
+ * @param {string} username The Instagram username to look up.
+ * @returns {Promise<object>} Combined overview object.
+ */
+async function getFullOverview(username) {
+  const [profileData, statsData, infoData] = await Promise.all([
+    getUserProfile(username),
+    getUserStats(username),
+    getUserInfoFromRapidAPI(username)
+  ]);
+
+  const profile = profileData.business_discovery || {};
+
+  return {
+    photo: profile.profile_picture_url || null,
+    username: profile.username || username,
+    email: infoData.email || null,
+    followers: profile.followers_count || 0,
+    engagement_rate: statsData.engagement_rate,
+    avg_likes: statsData.avg_likes,
+    avg_comments: statsData.avg_comments,
+    avg_video_views: statsData.avg_video_views,
+    location: infoData.country || null
+  };
+}
+
 module.exports = {
   getUserProfile,
   getUserMedia,
   getUserStats,
-  getUserInfoFromRapidAPI
+  getUserInfoFromRapidAPI,
+  getFullOverview
 };

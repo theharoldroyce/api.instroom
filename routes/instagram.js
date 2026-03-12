@@ -19,4 +19,8 @@ router.get('/:username/userstat', instagramController.fetchUserStats);
 // GET /:username/info
 router.get('/:username/info', instagramController.fetchUserInfo);
 
+// Define the route for getting a full user overview (profile + stats + contact/location)
+// GET /:username/instagram
+router.get('/:username/instagram', instagramController.fetchUserOverview);
+
 module.exports = router;
