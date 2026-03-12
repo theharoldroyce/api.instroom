@@ -5,6 +5,7 @@ require('dotenv').config(); // Load environment variables early
 
 // Import routes
 const instagramRoutes = require('./routes/instagram');
+const tiktokRoutes = require('./routes/tiktok');
 
 // Initialize the Express app
 const app = express();
@@ -29,6 +30,7 @@ app.use(express.json());
 // --- Routes ---
 // Use the Instagram routes for any requests to /api/instagram
 app.use('/', instagramRoutes);
+app.use('/', tiktokRoutes);
 
 // --- Global Error Handler (Optional but good practice) ---
 // This catches any errors that aren't handled in the route handlers
