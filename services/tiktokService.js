@@ -23,10 +23,12 @@ async function getTikTokData(username) {
     // Fetch profile and email data in parallel
     const [profileResponse, emailResponse] = await Promise.all([
       axios.get('https://api.omar-thing.site/', {
-        params: { key: apiKey, username }
+        params: { key: apiKey, username },
+        timeout: 10000
       }),
       axios.get('https://api.omar-thing.site/', {
-        params: { key: apiKey, type: 'domain', username }
+        params: { key: apiKey, type: 'domain', username },
+        timeout: 10000
       }).catch(() => null)
     ]);
 
@@ -71,8 +73,8 @@ async function getTikTokData(username) {
       avg_comments: stats['hearts'] && stats['videos'] && stats['videos'] > 0
         ? formatK(Math.round((stats['hearts'] * 0.008) / stats['videos']))
         : 'Not Available',
-      engagement_rate: stats['hearts'] && stats['videos'] && stats['videos'] > 0
-        ? (((stats['hearts'] / stats['videos']) + ((stats['hearts'] * 0.008 ) / stats['videos'])) / ((stats['hearts'] * 10) / stats['videos']) * 100).toFixed(2) + '%'
+      engagement_rate: stats['followers'] && stats['followers'] > 0 && stats['hearts'] && stats['videos'] && stats['videos'] > 0
+        ? (((stats['hearts'] / stats['videos']) + ((stats['hearts'] * 0.008) / stats['videos'])) / stats['followers'] * 100).toFixed(2) + '%'
         : 'Not Available',
       email: email || 'Not Available'
     };

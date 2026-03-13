@@ -23,12 +23,10 @@ async function getUserProfile(username) {
   const url = `https://graph.facebook.com/v25.0/${instagramBusinessId}?fields=${fields}&access_token=${accessToken}`;
 
   try {
-    const response = await axios.get(url);
+    const response = await axios.get(url, { timeout: 10000 });
     return response.data;
   } catch (apiError) {
-    // Log the detailed error for server-side debugging
     console.error('Error fetching user profile from Instagram API:', apiError.response ? apiError.response.data : apiError.message);
-    // Re-throw a more generic error to be handled by the controller
     throw new Error('Failed to fetch data from Instagram.');
   }
 }
@@ -55,7 +53,7 @@ async function getUserMedia(username) {
   const url = `https://graph.facebook.com/v25.0/${instagramBusinessId}?fields=${fields}&access_token=${accessToken}`;
 
   try {
-    const response = await axios.get(url);
+    const response = await axios.get(url, { timeout: 10000 });
     const data = response.data;
 
     // If media data exists, calculate the summary. Otherwise, return a zeroed summary.
@@ -146,7 +144,7 @@ async function getUserStats(username) {
     avg_likes: formatK(avg_likes),
     avg_comments: formatK(avg_comments),
     avg_video_views: formatK(avg_video_views),
-    engagement_rate: Number(engagement_rate.toFixed(2))
+    engagement_rate: engagement_rate.toFixed(2) + '%'
   };
 }
 
@@ -173,7 +171,7 @@ async function getUserInfoFromRapidAPI(username) {
 
   try {
     // First call - /v1/info returns both email and country
-    const infoResponse = await axios.get(`${baseURL}/v1/info`, { headers, params });
+    const infoResponse = await axios.get(`${baseURL}/v1/info`, { headers, params, timeout: 10000 });
     const infoData = infoResponse.data;
 
     let email = null;
@@ -187,7 +185,7 @@ async function getUserInfoFromRapidAPI(username) {
     // If country is still null, try /v1/info_about as fallback (2nd API call only when needed)
     if (!country) {
       try {
-        const aboutResponse = await axios.get(`${baseURL}/v1/info_about`, { headers, params });
+        const aboutResponse = await axios.get(`${baseURL}/v1/info_about`, { headers, params, timeout: 10000 });
         if (aboutResponse.data && aboutResponse.data.data && aboutResponse.data.data.country) {
           country = aboutResponse.data.data.country;
         }

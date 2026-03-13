@@ -1,45 +1,45 @@
 // index.js
 const express = require('express');
 const helmet = require('helmet');
-require('dotenv').config(); // Load environment variables early
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config();
 
-// Import routes
 const instagramRoutes = require('./routes/instagram');
 const tiktokRoutes = require('./routes/tiktok');
 
-// Initialize the Express app
 const app = express();
 const port = process.env.PORT || 3000;
 
-// --- Middleware ---
-// Use Helmet to set security-related HTTP headers
-// We are configuring CSP to explicitly allow connections to self,
-// which can help with some browser-internal requests like the one from Chrome DevTools.
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        "connect-src": ["'self'"],
-      },
-    },
-  })
-);
-// Middleware to parse JSON bodies
+// Security headers
+app.use(helmet());
+
+// CORS
+app.use(cors());
+
+// Rate limiting: max 60 requests per minute per IP
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many requests, please try again later.' }
+});
+app.use(limiter);
+
+// Parse JSON bodies
 app.use(express.json());
 
-// --- Routes ---
-// Use the Instagram routes for any requests to /api/instagram
+// Routes
 app.use('/', instagramRoutes);
 app.use('/', tiktokRoutes);
 
-// --- Global Error Handler (Optional but good practice) ---
-// This catches any errors that aren't handled in the route handlers
-app.use((err, req, res, next) => {
+// Global error handler
+app.use((err, _req, res, _next) => {
   console.error(err.stack);
-  res.status(500).send('Something broke!');
+  res.status(500).json({ message: 'Internal server error.' });
 });
 
-// Start the server
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
