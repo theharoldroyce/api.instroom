@@ -1,31 +1,6 @@
 // services/instagramService.js
 const axios = require('axios');
-
-// Simple in-memory cache with TTL (5 minutes)
-const cache = new Map();
-const CACHE_TTL = 5 * 60 * 1000;
-
-function getCached(key) {
-  const entry = cache.get(key);
-  if (!entry) return null;
-  if (Date.now() - entry.ts > CACHE_TTL) {
-    cache.delete(key);
-    return null;
-  }
-  return entry.data;
-}
-
-function setCache(key, data) {
-  cache.set(key, { data, ts: Date.now() });
-}
-
-// Evict expired cache entries every 10 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of cache) {
-    if (now - entry.ts > CACHE_TTL) cache.delete(key);
-  }
-}, 10 * 60 * 1000).unref();
+const cache = require('../utils/cache');
 
 /**
  * Formats a number into a compact string representation (e.g., 1000 -> "1k", 1200 -> "1.2k").
@@ -41,7 +16,7 @@ function formatK(num) {
  */
 async function getUserProfile(username) {
   const cacheKey = `profile:${username}`;
-  const cached = getCached(cacheKey);
+  const cached = cache.get(cacheKey);
   if (cached) return cached;
 
   const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
@@ -56,7 +31,7 @@ async function getUserProfile(username) {
 
   try {
     const response = await axios.get(url, { timeout: 10000 });
-    setCache(cacheKey, response.data);
+    cache.set(cacheKey, response.data);
     return response.data;
   } catch (apiError) {
     console.error('Error fetching user profile from Instagram API:', apiError.response?.data ?? apiError.message);
@@ -69,7 +44,7 @@ async function getUserProfile(username) {
  */
 async function getUserMedia(username) {
   const cacheKey = `media:${username}`;
-  const cached = getCached(cacheKey);
+  const cached = cache.get(cacheKey);
   if (cached) return cached;
 
   const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
@@ -106,7 +81,7 @@ async function getUserMedia(username) {
       summary = { total_likes: 0, total_comments: 0, total_video_count: 0, video_count: 0 };
     }
 
-    setCache(cacheKey, summary);
+    cache.set(cacheKey, summary);
     return summary;
   } catch (apiError) {
     console.error('Error fetching user media from Instagram API:', apiError.response?.data ?? apiError.message);
@@ -145,7 +120,7 @@ async function getUserStats(username, prefetched = null) {
  */
 async function getUserInfoFromRapidAPI(username) {
   const cacheKey = `info:${username}`;
-  const cached = getCached(cacheKey);
+  const cached = cache.get(cacheKey);
   if (cached) return cached;
 
   const rapidApiKey = process.env.RAPIDAPI_KEY;
@@ -183,7 +158,7 @@ async function getUserInfoFromRapidAPI(username) {
     }
 
     const result = { country, email };
-    setCache(cacheKey, result);
+    cache.set(cacheKey, result);
     return result;
   } catch (apiError) {
     console.error('Error fetching user info from RapidAPI:', apiError.response?.data ?? apiError.message);

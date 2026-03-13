@@ -1,30 +1,6 @@
 // services/tiktokService.js
 const axios = require('axios');
-
-// Simple in-memory cache with TTL (5 minutes)
-const cache = new Map();
-const CACHE_TTL = 5 * 60 * 1000;
-
-function getCached(key) {
-  const entry = cache.get(key);
-  if (!entry) return null;
-  if (Date.now() - entry.ts > CACHE_TTL) {
-    cache.delete(key);
-    return null;
-  }
-  return entry.data;
-}
-
-function setCache(key, data) {
-  cache.set(key, { data, ts: Date.now() });
-}
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of cache) {
-    if (now - entry.ts > CACHE_TTL) cache.delete(key);
-  }
-}, 10 * 60 * 1000).unref();
+const cache = require('../utils/cache');
 
 function formatK(num) {
   if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
@@ -37,7 +13,7 @@ function formatK(num) {
  */
 async function getTikTokData(username) {
   const cacheKey = `tiktok:${username}`;
-  const cached = getCached(cacheKey);
+  const cached = cache.get(cacheKey);
   if (cached) return cached;
 
   const apiKey = process.env.TIKTOK_ACCESS_TOKEN;
@@ -93,7 +69,7 @@ async function getTikTokData(username) {
       email: email || 'Not Available'
     };
 
-    setCache(cacheKey, result);
+    cache.set(cacheKey, result);
     return result;
   } catch (apiError) {
     console.error('Error fetching TikTok data:', apiError.response?.data ?? apiError.message);
