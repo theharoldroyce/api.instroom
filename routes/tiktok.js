@@ -4,9 +4,6 @@ const router = express.Router();
 const tiktokController = require('../controllers/tiktokController');
 
 // GET /:username/tiktok
-router.get('/:username/tiktok', tiktokController.fetchTikTokUser);
-
-// GET /:username/tiktok-email
-router.get('/:username/tiktok-email', tiktokController.fetchTikTokEmail);
+router.get('/:username/tiktok', tiktokController.fetchTikTokData);
 
 module.exports = router;
