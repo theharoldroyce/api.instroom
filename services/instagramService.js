@@ -143,10 +143,18 @@ async function getUserInfoFromRapidAPI(username) {
 
     let email = null;
     let country = null;
+    let followers = 0;
+    let user_id = null;
+    let avatar = null;
+    let fetchedUsername = null;
 
     if (infoData?.data) {
       email = infoData.data.public_email || 'Email not available';
       country = infoData.data.about?.country || null;
+      followers = infoData.data.follower_count || 0;
+      user_id = infoData.data.id || null;
+      avatar = infoData.data.profile_pic_url || null;
+      fetchedUsername = infoData.data.username || null;
     }
 
     if (!country) {
@@ -160,13 +168,82 @@ async function getUserInfoFromRapidAPI(username) {
       }
     }
 
-    const result = { country, email };
+    const result = { country, email, followers, user_id, avatar, username: fetchedUsername || username };
     cache.set(cacheKey, result);
     return result;
   } catch (apiError) {
     console.error('Error fetching user info from RapidAPI:', apiError.response?.data ?? apiError.message);
     throw new Error('Failed to fetch data from Instagram Social API.');
   }
+}
+
+/**
+ * Fetches user posts from the Instagram Social API (RapidAPI).
+ */
+async function getUserPostsFromRapidAPI(username) {
+  const cacheKey = `posts:${username}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return cached;
+
+  const rapidApiKey = process.env.RAPIDAPI_KEY;
+  const rapidApiHost = process.env.RAPIDAPI_HOST;
+
+  if (!rapidApiKey || !rapidApiHost) {
+    throw new Error('API configuration is incomplete.');
+  }
+
+  const headers = { 'x-rapidapi-key': rapidApiKey, 'x-rapidapi-host': rapidApiHost };
+  const params = { username_or_id_or_url: username };
+  const baseURL = `https://${rapidApiHost}`;
+
+  await checkAndIncrement();
+
+  try {
+    const response = await axios.get(`${baseURL}/v1/posts`, { headers, params, timeout: 10000 });
+    const items = response.data?.data?.items || [];
+
+    const totals = items.reduce((acc, item) => {
+      acc.total_comment_count += item.comment_count || 0;
+      acc.total_like_count += item.like_count || 0;
+      acc.total_play_count += item.play_count || 0;
+      return acc;
+    }, { total_comment_count: 0, total_like_count: 0, total_play_count: 0 });
+
+    totals.post_count = items.length;
+
+    cache.set(cacheKey, totals);
+    return totals;
+  } catch (apiError) {
+    console.error('Error fetching user posts from RapidAPI:', apiError.response?.data ?? apiError.message);
+    throw new Error('Failed to fetch posts from Instagram Social API.');
+  }
+}
+
+/**
+ * Calculates average engagement stats for a user using RapidAPI data sources.
+ */
+async function getUserStatsFromRapidAPI(username) {
+  const [postsData, infoData] = await Promise.all([
+    getUserPostsFromRapidAPI(username),
+    getUserInfoFromRapidAPI(username)
+  ]);
+
+  const { total_like_count, total_comment_count, total_play_count, post_count } = postsData;
+  const followers = infoData.followers || 0;
+
+  const avg_likes = post_count > 0 ? total_like_count / post_count : 0;
+  const avg_comments = post_count > 0 ? total_comment_count / post_count : 0;
+  const avg_video_views = post_count > 0 ? total_play_count / post_count : 0;
+  
+  const total_engagements = avg_likes + avg_comments;
+  const engagement_rate = followers > 0 ? (total_engagements / followers) * 100 : 0;
+
+  return {
+    avg_likes: formatK(avg_likes),
+    avg_comments: formatK(avg_comments),
+    avg_video_views: formatK(avg_video_views),
+    engagement_rate: engagement_rate.toFixed(2) + '%'
+  };
 }
 
 /**
@@ -196,10 +273,36 @@ async function getFullOverview(username) {
   };
 }
 
+/**
+ * Fetches a full overview using only RapidAPI data sources (V2).
+ * Combines getUserInfoFromRapidAPI and getUserStatsFromRapidAPI.
+ */
+async function getFullOverviewFromRapidAPI(username) {
+  const [infoData, statsData] = await Promise.all([
+    getUserInfoFromRapidAPI(username),
+    getUserStatsFromRapidAPI(username)
+  ]);
+
+  return {
+    photo: infoData.avatar || null,
+    username: infoData.username || username,
+    email: infoData.email || null,
+    followers: infoData.followers || 0,
+    engagement_rate: statsData.engagement_rate,
+    avg_likes: statsData.avg_likes,
+    avg_comments: statsData.avg_comments,
+    avg_video_views: statsData.avg_video_views,
+    location: infoData.country || null
+  };
+}
+
 module.exports = {
   getUserProfile,
   getUserMedia,
   getUserStats,
   getUserInfoFromRapidAPI,
-  getFullOverview
+  getUserPostsFromRapidAPI,
+  getUserStatsFromRapidAPI,
+  getFullOverview,
+  getFullOverviewFromRapidAPI
 };

@@ -111,6 +111,56 @@ async function fetchUserInfo(req, res) {
 }
 
 /**
+ * Controller to handle the request for fetching user posts from RapidAPI.
+ */
+async function fetchUserPosts(req, res) {
+  const { username } = req.params;
+
+  // 1. Validate the input
+  const { error } = usernameSchema.validate({ username });
+  if (error) {
+    return res.status(400).json({ message: 'Invalid username format.', details: error.details });
+  }
+
+  try {
+    // 2. Call the service to get the data
+    const postsData = await instagramService.getUserPostsFromRapidAPI(username);
+    
+    // 3. Send the successful response
+    res.status(200).json(postsData);
+  } catch (serviceError) {
+    // 4. Handle errors from the service
+    const statusCode = serviceError.message.includes('configuration') ? 500 : 502; 
+    res.status(statusCode).json({ message: serviceError.message });
+  }
+}
+
+/**
+ * Controller to handle the request for fetching user stats using RapidAPI data.
+ */
+async function fetchUserStatsFromRapidAPI(req, res) {
+  const { username } = req.params;
+
+  // 1. Validate the input
+  const { error } = usernameSchema.validate({ username });
+  if (error) {
+    return res.status(400).json({ message: 'Invalid username format.', details: error.details });
+  }
+
+  try {
+    // 2. Call the service to get the stats data
+    const statsData = await instagramService.getUserStatsFromRapidAPI(username);
+    
+    // 3. Send the successful response
+    res.status(200).json(statsData);
+  } catch (serviceError) {
+    // 4. Handle errors from the service
+    const statusCode = serviceError.message.includes('configuration') ? 500 : 502; 
+    res.status(statusCode).json({ message: serviceError.message });
+  }
+}
+
+/**
  * Controller to handle the request for fetching a full user overview.
  */
 async function fetchUserOverview(req, res) {
@@ -130,10 +180,33 @@ async function fetchUserOverview(req, res) {
   }
 }
 
+/**
+ * Controller to handle the request for fetching a full user overview (V2 - RapidAPI only).
+ */
+async function fetchUserOverviewFromRapidAPI(req, res) {
+  const { username } = req.params;
+
+  const { error } = usernameSchema.validate({ username });
+  if (error) {
+    return res.status(400).json({ message: 'Invalid username format.', details: error.details });
+  }
+
+  try {
+    const overviewData = await instagramService.getFullOverviewFromRapidAPI(username);
+    res.status(200).json(overviewData);
+  } catch (serviceError) {
+    const statusCode = serviceError.message.includes('configuration') ? 500 : 502;
+    res.status(statusCode).json({ message: serviceError.message });
+  }
+}
+
 module.exports = {
   fetchUserProfile,
   fetchUserMedia,
   fetchUserStats,
   fetchUserInfo,
-  fetchUserOverview
+  fetchUserPosts,
+  fetchUserStatsFromRapidAPI,
+  fetchUserOverview,
+  fetchUserOverviewFromRapidAPI
 };
